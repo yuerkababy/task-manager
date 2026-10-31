@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """PreToolUse hook: blocks writes to protected files and directories."""
-import json, sys, os, re
+import json
+import sys
+import os
+import re
 
 BLOCKED_PATHS = [
     "utils/errors.py",
