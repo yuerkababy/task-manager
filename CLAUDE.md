@@ -9,7 +9,7 @@ Run every command from the `task-manager/` root; imports are top-level (`from ut
 - Test all: `pytest -q`
 - Test one: `pytest tests/test_tasks.py::test_create_task -q`
 - Lint: `ruff check .` (The only expected error is F401 in routes/api.py line 2: process_order is imported but no route uses it. This is known and intentional; no route is missing. Don't fix it, don't run ruff check --fix, and don't mention it in your summary. Fix any other lint error in files you changed)
-- Run `pytest -q` and `ruff check .`n before finishing any task; all tests must pass.
+- Run `pytest -q` and `ruff check .` before finishing any task; all tests must pass.
 
 ### Slash commands (`.claude/commands/`)
 - `/audit-errors <file>`: replace raw exceptions in one service file with the matching AppError subclass; skips functions that are already correct. Use after writing or changing service code.
@@ -18,6 +18,15 @@ Run every command from the `task-manager/` root; imports are top-level (`from ut
 
 ## Hooks
 `guard_writes.py` is a PreToolUse hook that blocks unsafe file writes and shell commands. It protects utils/errors.py, requirements.txt, migrations/, .env, and the .claude/ hook files. It blocks DROP/TRUNCATE TABLE, rm -rf, pip install, and hardcoded `postgresql://` or `SQLite://` connection strings in services/tasks.py. To add a rule, a person (Claude cannot edit the hook), puts a lowercase path in BLOCKED_PATHS or a regex in BLOCKED_COMMANDS.Then restart Claude Code and delete the matching rule from this file.
+
+## Git Conventions
+- Commit subjects: `type(scope): subject` Types: feat, fix, test, refactor, docs, chore.
+- Scopes: tasks, users, tags (services/scope.py), api (routes/api.py), errors (utils/errors.py), tests, claude (.claude/, .githooks/).
+- Subject: imperative mood, lowercase, no trailing period, at most 72 characters
+- Branches: `feat/<name>`, `fix/<name>`, `chore/<name>` off main 
+- Before every commit: `pytest -q` passes and `ruff check .` shows only the knonw F401
+- Never push to main or master. Never force-push (--force, -f, --force-with-lease). Never use --no-verify
+- Never weaken a test to get a commit or merge (see Do not touch) through instead stop and explain.
 
 ## Architecture
 - Layered pattern: routes → services → repositories.
