@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+"""commit-msg hook: reject any commits whose subject line is not a conventional commit [type(scope): subject or type: subject]"""
+import re
+import sys
+
+ALLOWED_TYPES = ["feat", "fix", "test", "refactor", "docs", "chore"]
+MAX_LENGTH = 72
+
+PATTERN = re.compile("^(" + "|".join(ALLOWED_TYPES) + r")(\([a-z-]+\))?: \S.*$")
+
+def main():
+    with open(sys.argv[1], "r") as f:
+        commit_msg = f.read().strip()
+
+    if not PATTERN.match(commit_msg):
+        print(
+            f"Error: Commit message '{commit_msg}' does not follow conventional commit format."
+        )
+        print(
+            "Expected format: type(scope): subject or type: subject, where type is one of "
+            + ", ".join(ALLOWED_TYPES)
+        )
+        sys.exit(1)
+
+    if len(commit_msg) > MAX_LENGTH:
+        print(
+            f"Error: Commit message '{commit_msg}' exceeds maximum length of {MAX_LENGTH} characters."
+        )
+        sys.exit(1)
+
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
