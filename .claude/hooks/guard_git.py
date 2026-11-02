@@ -3,7 +3,6 @@
 import json
 import shlex
 import sys
-import os
 import re
 
 PROTECTED_BRANCHES = ["main", "master"]
