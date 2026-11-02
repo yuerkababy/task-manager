@@ -59,5 +59,5 @@ If a task seems to require breaking one of these, stop and explain instead of ed
 - Change only the function the prompt names. `process_order` has the same raw `TASKS[task_id]` KeyError
   as `get_task`; if you notice it, report it in your summary instead of fixing it.
 - `tests/test_tasks.py` existing tests: don't edit, delete, or loosen them. Adding new tests is OK.
-- Function names and signatures in `services/` are frozen. This includes `process_order`, even though
-  the name is misleading (it marks a task done); `routes/api.py` and the tests import it.
+- Function names and signatures in `services/` are frozen. This includes `process_order`, even though the name is misleading (it marks a task done); `routes/api.py` and the tests import it.
+- Adding a new optional keyword paramter at the end is OK.
