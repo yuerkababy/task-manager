@@ -2,6 +2,7 @@ import pytest
 from services.tasks import process_order, get_task, create_task, get_tasks_for_user
 from services.tasks import list_tasks
 from services.tasks import update_task
+from services.tasks import search_tasks
 from utils.errors import NotFoundError, ValidationError
 
 def test_process_order_valid():
@@ -82,3 +83,37 @@ def test_update_task_invalid_priority_raises_validation_error():
         with pytest.raises(ValidationError):
             update_task(created["id"], priority)
     assert get_task(created["id"])["priority"] == 4
+
+def test_search_tasks_matches_title_case_insensitive():
+    match = create_task("Feed Zephyrquill cat", 1)
+    other = create_task("Unrelated chore", 1)
+    task_ids = [task["id"] for task in search_tasks("zephyrQUILL")]
+    assert match["id"] in task_ids
+    assert other["id"] not in task_ids
+
+def test_search_tasks_matches_description():
+    created = create_task("Plain title", 1)
+    created["description"] = "Talk to Marrowbeck"
+    task_ids = [task["id"] for task in search_tasks("marrowbeck")]
+    assert created["id"] in task_ids
+
+def test_search_tasks_task_without_description_does_not_raise():
+    created = create_task("Brindlewort errand", 1)
+    assert "description" not in created
+    task_ids = [task["id"] for task in search_tasks("brindlewort")]
+    assert created["id"] in task_ids
+
+def test_search_tasks_no_match_returns_empty_list():
+    assert search_tasks("qqxxnomatchzz") == []
+
+@pytest.mark.parametrize("query", ["", "   "])
+def test_search_tasks_empty_query_raises_validation_error(query):
+    with pytest.raises(ValidationError):
+        search_tasks(query)
+
+def test_list_tasks_q_combines_with_priority():
+    urgent = create_task("Glimmerfen a", 1, priority=1)
+    low = create_task("Glimmerfen b", 1, priority=5)
+    task_ids = [task["id"] for task in list_tasks(priority=1, q="glimmerfen")]
+    assert urgent["id"] in task_ids
+    assert low["id"] not in task_ids
