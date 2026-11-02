@@ -2,9 +2,9 @@ from services.users import get_user
 from utils.errors import NotFoundError, ValidationError
 
 TASKS: dict[int, dict] = {
-    1: {"id": 1, "title": "Buy groceries",  "done": False, "user_id": 1, "priority": 1, "estimate": 1},
-    2: {"id": 2, "title": "Write report",   "done": False, "user_id": 1, "priority": 3, "estimate": 5},
-    3: {"id": 3, "title": "Call dentist",   "done": True,  "user_id": 2, "priority": 5, "estimate": 8},
+    1: {"id": 1, "title": "Buy groceries",  "done": False, "user_id": 1, "priority": 1, "estimate": 1, "archived": False},
+    2: {"id": 2, "title": "Write report",   "done": False, "user_id": 1, "priority": 3, "estimate": 5, "archived": False},
+    3: {"id": 3, "title": "Call dentist",   "done": True,  "user_id": 2, "priority": 5, "estimate": 8, "archived": False},
 }
 
 _UNSET = object()
@@ -77,7 +77,7 @@ def create_task(title: str, user_id: int, priority: int = 3, estimate: int = 1) 
     new_id = max(TASKS.keys()) + 1
     TASKS[new_id] = {
         "id": new_id, "title": title, "done": False, "user_id": user_id,
-        "priority": priority, "estimate": estimate,
+        "priority": priority, "estimate": estimate, "archived": False,
     }
     return TASKS[new_id]
 
@@ -105,6 +105,51 @@ def update_task(task_id: int, priority: int, estimate: int | object = _UNSET) ->
         TASKS[task_id]["estimate"] = estimate
     TASKS[task_id]["priority"] = priority
     return TASKS[task_id]
+
+def archive_task(task_id: int) -> dict:
+    """Archive a task so it is hidden from list_tasks by default.
+
+    Archiving a task that is already archived leaves it unchanged.
+
+    Args:
+        task_id: The unique identifier for the task.
+
+    Returns:
+        The archived task record.
+
+    Raises:
+        NotFoundError: If no task exists with the given ID.
+    """
+    if task_id not in TASKS:
+        raise NotFoundError("Task")
+    TASKS[task_id]["archived"] = True
+    return TASKS[task_id]
+
+def _parse_include_archived(include_archived: bool | str | None) -> bool:
+    """Convert an include_archived value to a bool.
+
+    Args:
+        include_archived: A bool, None (treated as False), or a string such as a raw
+            query parameter, "true" or "false" (case-insensitive).
+
+    Returns:
+        True if archived tasks should be included, otherwise False.
+
+    Raises:
+        ValidationError: If include_archived is a string other than "true" or "false",
+            or is not a bool, string, or None.
+    """
+    if include_archived is None:
+        return False
+    if isinstance(include_archived, bool):
+        return include_archived
+    if isinstance(include_archived, str):
+        value = include_archived.lower()
+        if value == "true":
+            return True
+        if value == "false":
+            return False
+    raise ValidationError("include_archived", "must be true or false")
 
 def get_tasks_for_user(user_id: int) -> list[dict]:
     """Retrieve all tasks owned by a user.
@@ -146,8 +191,11 @@ def list_tasks(
     priority: int | str | None = None,
     estimate: int | str | None = None,
     q: str | None = None,
+    include_archived: bool | str | None = False,
 ) -> list[dict]:
-    """Retrieve all tasks, optionally filtered by priority, estimate, and/or keyword.
+    """Retrieve tasks, optionally filtered by priority, estimate, and/or keyword.
+
+    Archived tasks are excluded unless include_archived is true.
 
     Args:
         priority: If given, only return tasks with this priority, from 1 (urgent) to 5 (low).
@@ -156,16 +204,21 @@ def list_tasks(
             A string (such as a raw query parameter) is converted to an integer first.
         q: If given, only return tasks whose title or description contains this text,
             case-insensitive.
+        include_archived: If true, also return archived tasks. Accepts a bool, None
+            (treated as False), or "true"/"false" (case-insensitive). Defaults to False.
 
     Returns:
         A list of task records (empty if no tasks match).
 
     Raises:
         ValidationError: If priority is given and is not an integer from 1 to 5,
-            estimate is given and is not an integer from 1 to 8, or q is given and
-            is empty or only whitespace.
+            estimate is given and is not an integer from 1 to 8, q is given and is
+            empty or only whitespace, or include_archived is not a valid true/false value.
     """
+    include_archived = _parse_include_archived(include_archived)
     tasks = search_tasks(q) if q is not None else list(TASKS.values())
+    if not include_archived:
+        tasks = [task for task in tasks if not task.get("archived", False)]
     if priority is not None:
         if isinstance(priority, str):
             try:

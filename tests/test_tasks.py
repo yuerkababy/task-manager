@@ -3,6 +3,7 @@ from services.tasks import process_order, get_task, create_task, get_tasks_for_u
 from services.tasks import list_tasks
 from services.tasks import update_task
 from services.tasks import search_tasks
+from services.tasks import TASKS
 from utils.errors import NotFoundError, ValidationError
 
 def test_process_order_valid():
@@ -117,3 +118,71 @@ def test_list_tasks_q_combines_with_priority():
     task_ids = [task["id"] for task in list_tasks(priority=1, q="glimmerfen")]
     assert urgent["id"] in task_ids
     assert low["id"] not in task_ids
+
+def _mark_archived(task: dict) -> None:
+    TASKS[task["id"]]["archived"] = True
+
+def test_archive_task_sets_archived():
+    from services.tasks import archive_task
+    created = create_task("Old chore", 1)
+    result = archive_task(created["id"])
+    assert result["archived"] is True
+    assert get_task(created["id"]).get("archived") is True
+
+def test_archive_task_missing_raises_not_found():
+    from services.tasks import archive_task
+    with pytest.raises(NotFoundError):
+        archive_task(999)
+
+def test_archive_task_already_archived_is_noop():
+    from services.tasks import archive_task
+    created = create_task("Twice archived", 1)
+    archive_task(created["id"])
+    result = archive_task(created["id"])
+    assert result["archived"] is True
+
+def test_create_task_default_not_archived():
+    result = create_task("Fresh task", 1)
+    assert result.get("archived") is False
+
+def test_list_tasks_hides_archived_by_default():
+    archived = create_task("Hidden task", 1)
+    visible = create_task("Visible task", 1)
+    _mark_archived(archived)
+    ids = [task["id"] for task in list_tasks()]
+    assert archived["id"] not in ids
+    assert visible["id"] in ids
+
+def test_list_tasks_archived_hidden_with_priority_filter():
+    archived = create_task("Hidden priority task", 1, priority=2)
+    _mark_archived(archived)
+    ids = [task["id"] for task in list_tasks(priority=2)]
+    assert archived["id"] not in ids
+
+def test_list_tasks_include_archived_true():
+    archived = create_task("Included task", 1)
+    _mark_archived(archived)
+    ids = [task["id"] for task in list_tasks(include_archived=True)]
+    assert archived["id"] in ids
+
+def test_list_tasks_include_archived_string_parsing():
+    archived = create_task("Parsed task", 1)
+    _mark_archived(archived)
+    for value in ("true", "TRUE"):
+        assert archived["id"] in [task["id"] for task in list_tasks(include_archived=value)]
+    assert archived["id"] not in [task["id"] for task in list_tasks(include_archived="false")]
+
+def test_list_tasks_include_archived_invalid_raises_validation():
+    with pytest.raises(ValidationError):
+        list_tasks(include_archived="yes")
+
+def test_list_tasks_q_hides_archived_by_default():
+    archived = create_task("Vellicorn archived", 1)
+    visible = create_task("Vellicorn visible", 1)
+    _mark_archived(archived)
+    default_ids = [task["id"] for task in list_tasks(q="vellicorn")]
+    assert archived["id"] not in default_ids
+    assert visible["id"] in default_ids
+    included_ids = [task["id"] for task in list_tasks(q="vellicorn", include_archived=True)]
+    assert archived["id"] in included_ids
+    assert visible["id"] in included_ids

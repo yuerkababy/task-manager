@@ -1,5 +1,6 @@
 from app import app
 from services.tasks import create_task
+from services.tasks import TASKS
 
 def test_list_tasks_route_non_numeric_priority_returns_422():
     response = app.test_client().get("/api/tasks?priority=abc")
@@ -158,3 +159,47 @@ def test_list_tasks_route_without_q_unchanged():
     assert response.status_code == 200
     ids = [task["id"] for task in response.get_json()]
     assert created.get_json()["id"] in ids
+
+def _create_archived_task(title: str) -> dict:
+    task = create_task(title, 1)
+    TASKS[task["id"]]["archived"] = True
+    return task
+
+def test_list_tasks_route_hides_archived_by_default():
+    archived = _create_archived_task("Route hidden task")
+    response = app.test_client().get("/api/tasks")
+    assert response.status_code == 200
+    assert archived["id"] not in [task["id"] for task in response.get_json()]
+
+def test_list_tasks_route_include_archived_true():
+    archived = _create_archived_task("Route included task")
+    response = app.test_client().get("/api/tasks?include_archived=true")
+    assert response.status_code == 200
+    assert archived["id"] in [task["id"] for task in response.get_json()]
+
+def test_list_tasks_route_include_archived_false():
+    archived = _create_archived_task("Route excluded task")
+    response = app.test_client().get("/api/tasks?include_archived=false")
+    assert response.status_code == 200
+    assert archived["id"] not in [task["id"] for task in response.get_json()]
+
+def test_list_tasks_route_invalid_include_archived_returns_422():
+    response = app.test_client().get("/api/tasks?include_archived=maybe")
+    assert response.status_code == 422
+    assert response.get_json() == {"error": "Invalid include_archived: must be true or false"}
+
+def test_get_task_route_includes_archived():
+    created = create_task("Route fresh task", 1)
+    response = app.test_client().get(f"/api/tasks/{created['id']}")
+    assert response.status_code == 200
+    assert response.get_json().get("archived") is False
+
+def test_list_tasks_route_q_with_include_archived():
+    archived = _create_archived_task("Pellumbra archived")
+    client = app.test_client()
+    hidden = client.get("/api/tasks?q=pellumbra")
+    assert hidden.status_code == 200
+    assert archived["id"] not in [task["id"] for task in hidden.get_json()]
+    response = client.get("/api/tasks?q=pellumbra&include_archived=true")
+    assert response.status_code == 200
+    assert archived["id"] in [task["id"] for task in response.get_json()]
