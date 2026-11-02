@@ -121,25 +121,51 @@ def get_tasks_for_user(user_id: int) -> list[dict]:
     get_user(user_id)
     return [task for task in TASKS.values() if task["user_id"] == user_id]
 
+def search_tasks(query: str) -> list[dict]:
+    """Retrieve tasks whose title or description contains a keyword, case-insensitive.
+
+    Args:
+        query: The text to search for.
+
+    Returns:
+        A list of matching task records (empty if none match).
+
+    Raises:
+        ValidationError: If query is empty or only whitespace.
+    """
+    if not query or not query.strip():
+        raise ValidationError("q", "cannot be empty")
+    needle = query.strip().casefold()
+    return [
+        task for task in TASKS.values()
+        if needle in task["title"].casefold()
+        or needle in task.get("description", "").casefold()
+    ]
+
 def list_tasks(
-    priority: int | str | None = None, estimate: int | str | None = None
+    priority: int | str | None = None,
+    estimate: int | str | None = None,
+    q: str | None = None,
 ) -> list[dict]:
-    """Retrieve all tasks, optionally filtered by priority and/or estimate.
+    """Retrieve all tasks, optionally filtered by priority, estimate, and/or keyword.
 
     Args:
         priority: If given, only return tasks with this priority, from 1 (urgent) to 5 (low).
             A string (such as a raw query parameter) is converted to an integer first.
         estimate: If given, only return tasks with this estimate, from 1 to 8.
             A string (such as a raw query parameter) is converted to an integer first.
+        q: If given, only return tasks whose title or description contains this text,
+            case-insensitive.
 
     Returns:
         A list of task records (empty if no tasks match).
 
     Raises:
-        ValidationError: If priority is given and is not an integer from 1 to 5, or
-            estimate is given and is not an integer from 1 to 8.
+        ValidationError: If priority is given and is not an integer from 1 to 5,
+            estimate is given and is not an integer from 1 to 8, or q is given and
+            is empty or only whitespace.
     """
-    tasks = list(TASKS.values())
+    tasks = search_tasks(q) if q is not None else list(TASKS.values())
     if priority is not None:
         if isinstance(priority, str):
             try:

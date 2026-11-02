@@ -135,3 +135,26 @@ def test_create_tag_route_empty_name_returns_422():
     response = app.test_client().post("/api/tags", json={"name": "  "})
     assert response.status_code == 422
     assert response.get_json() == {"error": "Invalid name: cannot be empty"}
+
+def test_list_tasks_route_search_by_q():
+    client = app.test_client()
+    match = client.post("/api/tasks", json={"title": "Quorvane plan", "user_id": 1})
+    other = client.post("/api/tasks", json={"title": "Other thing", "user_id": 1})
+    response = client.get("/api/tasks?q=QUORVANE")
+    assert response.status_code == 200
+    ids = [task["id"] for task in response.get_json()]
+    assert match.get_json()["id"] in ids
+    assert other.get_json()["id"] not in ids
+
+def test_list_tasks_route_empty_q_returns_422():
+    response = app.test_client().get("/api/tasks?q=")
+    assert response.status_code == 422
+    assert response.get_json() == {"error": "Invalid q: cannot be empty"}
+
+def test_list_tasks_route_without_q_unchanged():
+    client = app.test_client()
+    created = client.post("/api/tasks", json={"title": "Tessaline chore", "user_id": 1})
+    response = client.get("/api/tasks")
+    assert response.status_code == 200
+    ids = [task["id"] for task in response.get_json()]
+    assert created.get_json()["id"] in ids
