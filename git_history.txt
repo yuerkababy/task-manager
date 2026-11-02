@@ -1,0 +1,32 @@
+﻿* 593ac1d docs: add week 8 reports and git policy
+*   ce31268 chore: merge feat/archive into main
+|\  
+| * e5b7b4c feat(tasks): add archive_task and include_archived filter to list_tasks
+* |   1f9a814 chore: merge feat/search into main
+|\ \  
+| |/  
+|/|   
+| * 3e6141d feat(tasks): add keyword search via GET /api/tasks?q=
+|/  
+* 4c0da43 fix(claude): restore and fix os import in guard git and warites
+* 5666d87 chore(claude): remove unused import in guard_git hook
+* bf823ed docs(claudemd): allow new optional params in services
+* fccfa6b feat(claude): added git pretooluse hook and changes settings.json
+* c26436e fix(claude): added ask when using bash git commit * command
+* f8b3e51 chore(claude): split combined imports in guard_writes hook
+* 325b38f chore(commands): renamed scaffold-endpoint file
+* eac1f73 feat(claude): added commit-msg
+* c68d057 feat(claude): update CLAUDE.md and ship command
+* 1176dc6 chore: deleted leftover DECOMP.md file from past project
+* baf0f6a chore: add gitignore and remove editor backup files
+* 046d527 fix(errors): restore error classes lost during hook testing
+ \ 
+  * 61908d5 Add taskmanager
+* 29d51f0 Add taskmanager
+* 3bc9ebc Add pa6
+* ce5305a Add pa5
+* 2844cbb Add pa4
+* 3d832ef Add pa3
+* 8e64995 Add pa2
+* 1d0eba4 Add pa1
+* 041ccb3 Add .gitignore
