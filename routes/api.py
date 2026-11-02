@@ -28,7 +28,11 @@ def update_task_route(task_id):
 
 @api.route("/tasks", methods=["GET"])
 def list_tasks_route():
-    return jsonify(list_tasks(request.args.get("priority"), request.args.get("estimate")))
+    return jsonify(list_tasks(
+        request.args.get("priority"),
+        request.args.get("estimate"),
+        include_archived=request.args.get("include_archived"),
+    ))
 
 @api.route("/users/<int:user_id>", methods=["GET"])
 def get_user_route(user_id):
