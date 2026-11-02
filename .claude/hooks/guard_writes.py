@@ -2,7 +2,6 @@
 """PreToolUse hook: blocks writes to protected files and directories."""
 import json
 import sys
-import os
 import re
 
 BLOCKED_PATHS = [
